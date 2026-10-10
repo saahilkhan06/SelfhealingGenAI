@@ -825,8 +825,13 @@ func main() {
 	// HTTP Server
 	// --------------------------------------------------
 
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8082"
+	}
+
 	server := &http.Server{
-		Addr:    ":8082",
+		Addr:    ":" + port,
 		Handler: mux,
 
 		// Prevent connections from hanging forever.
@@ -841,9 +846,7 @@ func main() {
 
 	go func() {
 
-		log.Println(
-			"Order Service running on http://localhost:8082",
-		)
+		log.Printf("Order Service listening on :%s", port)
 
 		if err := server.ListenAndServe(); err != nil &&
 			err != http.ErrServerClosed {

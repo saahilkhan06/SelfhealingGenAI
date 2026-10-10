@@ -2,11 +2,13 @@ package main
 
 import (
 	"encoding/json"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"log"
 	"net/http"
+	"os"
 	"time"
+
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // --------------------------------------------------
@@ -148,18 +150,16 @@ func main() {
 	// Start server
 	// --------------------------------------------------
 
-	port := ":8081"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8081"
+	}
 
-	log.Printf(
-		"User Service running on http://localhost%s",
-		port,
-	)
+	addr := ":" + port
 
-	if err := http.ListenAndServe(
-		port,
-		nil,
-	); err != nil {
+	log.Printf("User Service listening on :%s", port)
 
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
 	}
 }

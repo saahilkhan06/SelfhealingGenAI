@@ -756,18 +756,16 @@ func main() {
 	// Start Server
 	// --------------------------------------------------
 
-	port := ":8083"
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "8083"
+	}
 
-	log.Printf(
-		"Payment Service running on http://localhost%s",
-		port,
-	)
+	addr := ":" + port
 
-	if err := http.ListenAndServe(
-		port,
-		nil,
-	); err != nil {
+	log.Printf("Payment Service listening on :%s", port)
 
+	if err := http.ListenAndServe(addr, nil); err != nil {
 		log.Fatal(err)
 	}
 }
