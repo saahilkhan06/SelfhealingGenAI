@@ -1,0 +1,117 @@
+30-second explanation
+
+If your professor suddenly asks:
+
+“What is your project?”
+
+Say:
+
+“My project is a Self-Healing GenAI Infrastructure for distributed microservices. The system monitors microservices using Prometheus and detects abnormal failures automatically. When an incident occurs, the Incident Manager collects operational evidence and sends it to a local GenAI model for root-cause diagnosis. The AI recommends a recovery, but it cannot directly execute infrastructure actions. A deterministic safety policy decides whether a predefined recovery action is safe. If approved, the system executes the action and verifies that the service has recovered. The entire incident and recovery process is stored in PostgreSQL and displayed on a monitoring dashboard.”
+
+Then finish with:
+
+“The key principle is: the LLM diagnoses, deterministic policy decides, and verification proves recovery.”
+
+If your professor asks: "Why did you build this?"
+
+Say:
+
+“In distributed systems, failure in one service can affect other services. Traditional monitoring can detect the failure, but investigation and recovery often require human intervention. I wanted to explore whether GenAI could assist with incident diagnosis and whether predefined safety policies could allow controlled automated recovery.”
+
+If they ask: "What exactly happens when something fails?"
+
+Explain this flow:
+
+Payment Service fails
+        ↓
+Order Service starts failing
+        ↓
+Prometheus records metrics
+        ↓
+Incident Manager detects threshold
+        ↓
+Incident created
+        ↓
+Evidence collected
+        ↓
+GenAI analyzes evidence
+        ↓
+Safety Policy evaluates diagnosis + evidence
+        ↓
+Approved recovery?
+      /       \
+    YES        NO
+     ↓          ↓
+  Healing    NO_ACTION
+     ↓          ↓
+ Verification Escalation
+     ↓
+ Resolved
+Very important
+
+Don't say:
+
+"The AI fixes the server."
+
+Instead say:
+
+"The AI diagnoses the incident, while the deterministic policy controls what the system is allowed to execute."
+
+That distinction is one of the strongest parts of your project.
+
+If they ask: "What is the role of GenAI?"
+
+Say:
+
+“GenAI is used for incident diagnosis. It receives structured operational evidence such as failure rate, service health, latency, and timeout information. It then produces a root-cause explanation, confidence level, recommended action, and reasoning.”
+
+Then immediately add:
+
+“It does not directly execute the recovery.”
+
+If they ask: "Why don't you let the LLM execute the command?"
+
+Answer:
+
+“Because an LLM is probabilistic and its output cannot be treated as a trusted infrastructure control mechanism. A wrong infrastructure command could make an incident worse. Therefore, I use the LLM for diagnosis and recommendation, while deterministic rules decide whether an allowlisted action can be executed.”
+
+That is a very strong viva answer.
+
+If they ask: "What happens when the AI gives a wrong recommendation?"
+
+Say:
+
+“The AI recommendation is not the final authority. The deterministic safety policy evaluates the actual evidence and the incident conditions. If no predefined safe recovery policy matches, the system performs NO_ACTION and escalates the incident.”
+
+You actually demonstrated this with your Unknown Fault experiment, which makes the answer much stronger.
+
+Your three experiments are your best proof
+High Latency
+     ↓
+CLEAR_PAYMENT_FAULT
+     ↓
+Verified
+     ↓
+Resolved
+
+
+Service Unavailable
+     ↓
+RESTART_PAYMENT_SERVICE
+     ↓
+Verified
+     ↓
+Resolved
+
+
+Unknown Condition
+     ↓
+NO_ACTION
+     ↓
+Escalated
+
+So if your professor asks:
+
+"How do you prove that your system is self-healing and safe?"
+
+You can point to these three scenarios.

@@ -1,0 +1,292 @@
+Great. Let's build your technical viva sheet. Focus on understanding the idea rather than memorizing every sentence.
+
+1. Why did you choose Go?
+
+“I chose Go because it is lightweight, has good support for concurrent and network-based services, produces simple standalone binaries, and is well suited for building microservices.”
+
+If they ask why not Node.js:
+
+“Node.js would also work, but I wanted practical experience with Go because it is widely used for backend and infrastructure-oriented systems.”
+
+2. Why Docker?
+
+“Each microservice has its own environment and dependencies. Docker packages the service and its dependencies into a container, which makes the distributed system easier to run consistently.”
+
+Your explanation:
+
+Go Service
+   ↓
+Docker Image
+   ↓
+Container
+   ↓
+Docker Compose
+   ↓
+Complete System
+3. Why Docker Compose?
+
+“I have multiple services that need to run together. Docker Compose lets me define the services, networks, ports, database, restart policies, and dependencies in one configuration and start the environment with a single command.”
+
+This is especially easy to demonstrate:
+
+docker compose up -d --build
+4. Why Prometheus?
+
+“Prometheus is used for monitoring and collecting time-series metrics. My services expose metrics such as order failures and payment failures, and the Incident Manager queries Prometheus to detect abnormal behavior.”
+
+Your actual detection query:
+
+increase(order_failures_total[1m])
+5. How does your system detect an incident?
+
+“The Incident Manager periodically queries Prometheus. When the failure rate crosses the configured threshold, it creates an incident. I also use edge-triggered suppression so the same continuously active failure condition does not create duplicate incidents.”
+
+That's an important advanced detail.
+
+6. What is the role of the Incident Manager?
+
+Think of it as the brain of the reliability workflow.
+
+It handles:
+
+Detection
+   ↓
+Evidence
+   ↓
+Diagnosis
+   ↓
+Policy
+   ↓
+Healing
+   ↓
+Verification
+   ↓
+Audit
+
+Answer:
+
+“The Incident Manager coordinates the entire self-healing lifecycle. It detects incidents, collects evidence, communicates with the GenAI model, evaluates the deterministic policy, executes approved actions, verifies recovery, and records the result.”
+
+7. What is fault injection?
+
+“Fault injection means intentionally introducing controlled failures into a system to test how it behaves under failure conditions.”
+
+Your project has:
+
+High latency
+Service unavailable
+Unknown fault
+
+This is where chaos engineering comes in.
+
+8. What is the circuit breaker?
+
+This is important.
+
+“A circuit breaker prevents a service from continuously calling a failing dependency. When failures exceed a threshold, the circuit can open and temporarily stop requests to the dependency. This helps prevent cascading failures.”
+
+Simple example:
+
+Order Service
+     ↓
+Payment Service ❌
+     ↓
+Repeated failures
+     ↓
+Circuit opens
+     ↓
+Stop unnecessary calls
+9. Why do you need retries if you already have a circuit breaker?
+
+Good professor question.
+
+“They solve different problems. Retry handles temporary failures by attempting the request again. Circuit breaking protects the system when failures become persistent. Using both provides better resilience.”
+
+10. Why do you need a timeout?
+
+“Without a timeout, the Order Service could wait indefinitely for the Payment Service. A timeout bounds how long the request can consume resources.”
+
+Your system uses approximately:
+
+Order → Payment timeout = 2 seconds
+
+So when Payment takes 5 seconds:
+
+Payment latency = 5s
+Order timeout = 2s
+
+5s > 2s
+   ↓
+Order request fails
+11. Why PostgreSQL?
+
+“I use PostgreSQL because incident and healing information is structured and relational. It allows me to persist incidents, AI diagnoses, recovery actions, execution status, and verification status reliably.”
+
+Your important tables:
+
+orders
+payments
+incidents
+healing_actions
+12. Why Ollama?
+
+“I use Ollama to run the GenAI model locally. This avoids depending on an external API for the core diagnosis workflow and makes the project easier to demonstrate locally.”
+
+Model:
+
+qwen2.5:1.5b
+13. Why a local LLM instead of OpenAI API?
+
+A good answer:
+
+“For this prototype, I wanted the GenAI component to run locally so the incident diagnosis pipeline could operate without depending on an external cloud API. It also makes experimentation easier and avoids sending operational evidence outside the local environment.”
+
+14. What information does the LLM receive?
+
+This is important.
+
+It doesn't simply receive:
+
+"Payment service failed."
+
+It receives evidence such as:
+
+Failure rate
+Order Service health
+Payment Service health
+Payment latency
+Order timeout
+Incident information
+
+Answer:
+
+“The model receives structured operational evidence collected by the Incident Manager. This gives it context for evidence-based diagnosis rather than relying only on an error message.”
+
+15. What does the LLM return?
+
+Your structured output contains:
+
+{
+  "root_cause": "...",
+  "confidence": "high",
+  "recommended_action": "...",
+  "reason": "..."
+}
+
+So you can say:
+
+“The model returns a structured diagnosis containing the probable root cause, confidence, recommended action, and reasoning.”
+
+16. Is the LLM allowed to execute commands?
+
+No.
+
+This is one of your strongest answers.
+
+“No. The LLM only diagnoses and recommends. A deterministic safety policy evaluates the actual evidence and decides whether a predefined action is allowed.”
+
+Then:
+
+“LLM diagnoses; deterministic policy decides.”
+
+17. What if there is no safe recovery policy?
+
+Your system does:
+
+NO_ACTION
+    ↓
+Escalation
+
+Answer:
+
+“The system does not invent a recovery action. If the incident doesn't match a predefined safe policy, it returns NO_ACTION and escalates the incident.”
+
+You actually tested this.
+
+18. What happens if recovery itself fails?
+
+“The system doesn't assume that executing a recovery action means the problem is solved. It performs a separate recovery verification step. If verification fails, the incident is escalated.”
+
+That's an important distinction:
+
+Execute ≠ Recovered
+
+Instead:
+
+Execute
+   ↓
+Verify
+   ↓
+Recovered?
+19. How do you verify recovery?
+
+For example, after restarting Payment Service:
+
+Restart requested
+      ↓
+Wait
+      ↓
+GET /health
+      ↓
+Healthy?
+      ↓
+YES → Verified
+NO  → Retry verification
+      ↓
+Still unhealthy → Escalate
+
+For the latency scenario, the system checks the fault status and service health.
+
+20. Is this really "self-healing"?
+
+If your professor challenges you:
+
+“Docker can restart a container. Why are you calling this self-healing?”
+
+Don't say Docker itself is your invention.
+
+Say:
+
+“Docker provides the container restart capability, but the self-healing workflow is broader. My system detects the incident through observability, collects evidence, uses GenAI for diagnosis, applies a safety policy, selects an approved recovery action, executes it, verifies recovery, and records the complete incident lifecycle.”
+
+That's a much stronger answer.
+
+The question you should be especially prepared for
+"How is this different from Kubernetes?"
+
+Answer:
+
+“Kubernetes already provides infrastructure-level self-healing such as restarting failed containers. My project is exploring a different layer: using GenAI to assist with incident diagnosis while keeping automated recovery behind deterministic safety policies. So the project is not claiming to replace Kubernetes; it explores an AI-assisted incident response layer.”
+
+Excellent answer for a professor.
+
+Your entire project in one mental model
+
+Remember this:
+
+              FAILURE
+                 ↓
+            PROMETHEUS
+                 ↓
+        INCIDENT MANAGER
+                 ↓
+        COLLECT EVIDENCE
+                 ↓
+               GENAI
+          "What happened?"
+                 ↓
+         SAFETY POLICY
+          "Can we act?"
+                 ↓
+       ALLOWLISTED ACTION
+          "What can we do?"
+                 ↓
+           EXECUTE
+                 ↓
+           VERIFY
+          /        \
+       PASS        FAIL
+        ↓            ↓
+    RESOLVED      ESCALATED
+
+If you understand this diagram deeply, you can answer most of the viva questions about the architecture without memorizing individual answers.

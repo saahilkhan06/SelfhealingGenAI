@@ -1,3 +1,58 @@
+ # Self-Healing GenAI Infrastructure 🤖
+
+**Self-Healing GenAI Infrastructure** is a fault-tolerant microservices project that combines monitoring, chaos engineering, and Generative AI to detect, diagnose, and help recover from system failures.
+
+The system consists of multiple Go-based microservices, including User, Order, and Payment services. It uses fault injection to simulate real-world problems such as service failures, increased latency, and communication timeouts. An Incident Manager monitors failures, identifies incidents, and uses a locally running Large Language Model (LLM) through Ollama to analyze the problem and recommend corrective actions.
+
+The project aims to demonstrate how AI-assisted incident management can improve the reliability, resilience, and recovery of distributed systems.
+
+## 🚀 Key Features
+
+- **Microservices Architecture:** Independent User, Order, and Payment services built with Go.
+- **Fault Injection:** Simulate service failures, network timeouts, and high latency.
+- **Real-Time Monitoring:** Track service health and failure metrics using Prometheus.
+- **Automated Incident Detection:** Identify abnormal failure rates and generate incidents.
+- **GenAI-Powered Diagnosis:** Use a local LLM through Ollama to analyze incidents and suggest solutions.
+- **Circuit Breaker Pattern:** Prevent repeated calls to unhealthy services and support recovery testing.
+- **Containerization:** Run services and supporting infrastructure using Docker Compose.
+- **Database Integration:** Use PostgreSQL to store incident-related data.
+
+## 🛠️ Tech Stack
+
+- **Backend:** Go (Golang)
+- **AI / LLM:** Ollama, Qwen 2.5
+- **Architecture:** Microservices
+- **Database:** PostgreSQL
+- **Monitoring:** Prometheus
+- **Containerization:** Docker, Docker Compose
+- **Reliability Engineering:** Fault Injection, Circuit Breaker, Incident Detection
+
+## ⚙️ How It Works
+
+1. A user initiates an operation through the microservices system.
+2. The Order Service communicates with the Payment Service to process the operation.
+3. Fault injection introduces failures or delays to simulate real-world incidents.
+4. The system monitors service health and tracks failures.
+5. The Incident Manager detects abnormal behavior and records an incident.
+6. A local LLM analyzes the incident and provides a possible root cause and recommended action.
+7. Recovery mechanisms can be tested to evaluate whether the system returns to a healthy state.
+
+## 🎯 Project Goal
+
+The goal is to explore how Generative AI can support automated incident diagnosis and self-healing capabilities in distributed systems, reducing manual troubleshooting and improving service reliability.
+
+**Project focus:** AI-assisted incident management, distributed systems reliability, fault tolerance, and automated recovery.
+
+## 📌 Future Enhancements
+
+- Implement automated recovery actions based on incident diagnosis.
+- Add more failure scenarios and resilience tests.
+- Build a dashboard for monitoring incidents and service health.
+- Evaluate recovery time and system availability before and after remediation.
+- Improve AI diagnosis accuracy using incident history and service metrics.
+ 
+ 
+ 
  # Self-Healing GenAI Infrastructure
 
 A prototype autonomous reliability system for distributed microservices that combines observability, GenAI-based incident diagnosis, deterministic safety policies, automated recovery, and recovery verification.
