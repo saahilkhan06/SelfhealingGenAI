@@ -17,9 +17,41 @@ import (
 	"github.com/jackc/pgx/v5"
 )
 
-const prometheusURL = "http://prometheus:9090"
+var prometheusURL = envOrDefault(
+	"PROMETHEUS_URL",
+	"http://prometheus:9090",
+)
 
-const postgresURL = "postgres://admin:password@postgres:5432/selfhealing"
+var postgresURL = envOrDefault(
+	"DATABASE_URL",
+	"postgres://admin:password@postgres:5432/selfhealing?sslmode=disable",
+)
+var orderServiceURL = envOrDefault(
+	"ORDER_SERVICE_URL",
+	"http://order-service:8082",
+)
+
+var paymentServiceURL = envOrDefault(
+	"PAYMENT_SERVICE_URL",
+	"http://payment-service:8083",
+)
+
+var userServiceURL = envOrDefault(
+	"USER_SERVICE_URL",
+	"http://user-service:8081",
+)
+var frontendOrigin = envOrDefault(
+	"FRONTEND_ORIGIN",
+	"http://localhost:5173",
+)
+
+func envOrDefault(key, fallback string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+
+	return fallback
+}
 
 type PrometheusResponse struct {
 	Status string `json:"status"`
@@ -96,6 +128,11 @@ var (
 	incidentsMu sync.RWMutex
 )
 var failureAlertActive bool
+
+var ollamaURL = envOrDefault(
+	"OLLAMA_URL",
+	"http://host.docker.internal:11434",
+)
 
 func testDatabaseConnection() {
 	ctx, cancel := context.WithTimeout(
@@ -209,7 +246,7 @@ Return ONLY valid JSON in this exact format:
 	}
 
 	resp, err := client.Post(
-		"http://host.docker.internal:11434/api/generate",
+		strings.TrimRight(ollamaURL, "/")+"/api/generate",
 		"application/json",
 		bytes.NewBuffer(body),
 	)
@@ -351,12 +388,12 @@ func collectEvidence(incident Incident) IncidentEvidence {
 
 	orderHealth := checkServiceHealth(
 		"order-service",
-		"http://order-service:8082",
+		orderServiceURL,
 	)
 
 	paymentHealth := checkServiceHealth(
 		"payment-service",
-		"http://payment-service:8083",
+		paymentServiceURL,
 	)
 
 	paymentFault := checkPaymentFault()
@@ -564,7 +601,7 @@ func checkPaymentFailures() {
 
 	paymentHealth := checkServiceHealth(
 		"payment-service",
-		"http://payment-service:8083",
+		paymentServiceURL,
 	)
 
 	if paymentHealth.Status != "healthy" {
@@ -734,7 +771,7 @@ func createIncident(incident Incident) {
 }
 
 func incidentsHandler(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "http://localhost:5173")
+	w.Header().Set("Access-Control-Allow-Origin", frontendOrigin)
 	w.Header().Set("Access-Control-Allow-Methods", "GET, OPTIONS")
 	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 
@@ -874,7 +911,7 @@ ORDER BY detected_at DESC`,
 func healingActionsHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set(
 		"Access-Control-Allow-Origin",
-		"http://localhost:5173",
+		frontendOrigin,
 	)
 
 	w.Header().Set(
@@ -1016,8 +1053,7 @@ func checkPaymentFault() FaultStatus {
 		Timeout: 3 * time.Second,
 	}
 
-	resp, err := client.Get("http://payment-service:8083/fault")
-
+	resp, err := client.Get(paymentServiceURL + "/fault")
 	if err != nil {
 		log.Printf("Payment fault status check failed: %v", err)
 
@@ -1092,7 +1128,6 @@ func determineHealingAction(
 	}
 }
 
-
 func restartPaymentContainer() error {
 	dockerHost := os.Getenv("DOCKER_HOST")
 	if dockerHost == "" {
@@ -1163,7 +1198,6 @@ func restartPaymentContainer() error {
 	return nil
 }
 
-
 func executeHealingAction(action HealingAction) bool {
 	if !action.Approved {
 		log.Printf(
@@ -1181,7 +1215,7 @@ func executeHealingAction(action HealingAction) bool {
 			Timeout: 5 * time.Second,
 		}
 
-		clearURL := "http://payment-service:8083/fault/latency?seconds=0"
+		clearURL := paymentServiceURL + "/fault/latency?seconds=0"
 
 		req, err := http.NewRequest(http.MethodPost, clearURL, nil)
 		if err != nil {
@@ -1212,7 +1246,7 @@ func executeHealingAction(action HealingAction) bool {
 		}
 
 		// Verify the fault state using the payment service's status endpoint.
-		verifyResp, err := client.Get("http://payment-service:8083/fault")
+		verifyResp, err := client.Get(paymentServiceURL + "/fault")
 		if err != nil {
 			log.Printf(
 				"❌ HEALING EXECUTOR | could not verify payment fault state: %v",
@@ -1287,7 +1321,7 @@ func verifyRecovery(action string) bool {
 		const maxAttempts = 10
 
 		for attempt := 1; attempt <= maxAttempts; attempt++ {
-			resp, err := client.Get("http://payment-service:8083/health")
+			resp, err := client.Get(paymentServiceURL + "/health")
 
 			if err == nil {
 				healthy := resp.StatusCode == http.StatusOK
@@ -1324,7 +1358,7 @@ func verifyRecovery(action string) bool {
 	}
 
 	// Check whether injected latency has been cleared.
-	resp, err := client.Get("http://payment-service:8083/fault")
+	resp, err := client.Get(paymentServiceURL + "/fault")
 	if err != nil {
 		log.Printf(
 			"❌ RECOVERY VERIFICATION FAILED | reason=fault_endpoint_unreachable | error=%v",
@@ -1365,7 +1399,7 @@ func verifyRecovery(action string) bool {
 	}
 
 	// Check that Payment Service is healthy.
-	healthResp, err := client.Get("http://payment-service:8083/health")
+	healthResp, err := client.Get(paymentServiceURL + "/health")
 	if err != nil {
 		log.Printf(
 			"❌ RECOVERY VERIFICATION FAILED | reason=health_endpoint_unreachable | error=%v",
@@ -1645,17 +1679,20 @@ func updateIncidentStatus(id string, status string) {
 		tag.RowsAffected(),
 	)
 }
+
 func main() {
 	testDatabaseConnection()
+
 	http.HandleFunc("/health", healthHandler)
 	http.HandleFunc("/incidents", incidentsHandler)
 	http.HandleFunc("/healing-actions", healingActionsHandler)
 
 	go detectIncidents()
 
-	log.Println("Incident Manager running on http://localhost:8090")
+	port := envOrDefault("PORT", "8090")
+	log.Printf("Incident Manager listening on :%s", port)
 
-	if err := http.ListenAndServe(":8090", nil); err != nil {
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
 		log.Fatal(err)
 	}
 }

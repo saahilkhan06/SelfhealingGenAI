@@ -86,8 +86,11 @@ func init() {
 
 func connectDatabase() error {
 
-	dsn := "host=postgres port=5432 user=admin password=password dbname=selfhealing sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
 
+	if dsn == "" {
+		dsn = "host=postgres port=5432 user=admin password=password dbname=selfhealing sslmode=disable"
+	}
 	var err error
 
 	db, err = sql.Open("postgres", dsn)
@@ -260,7 +263,6 @@ func clearUnknownFaultHandler(w http.ResponseWriter, r *http.Request) {
 		"service": "payment-service",
 	})
 }
-
 
 func clearUnavailableFaultHandler(w http.ResponseWriter, r *http.Request) {
 
@@ -735,9 +737,9 @@ func main() {
 		unknownFaultHandler,
 	)
 	http.HandleFunc(
-    "/fault/unknown/clear",
-    clearUnknownFaultHandler,
-)
+		"/fault/unknown/clear",
+		clearUnknownFaultHandler,
+	)
 
 	// Controlled self-healing endpoint
 	http.HandleFunc(

@@ -11,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -419,8 +420,13 @@ func callPaymentService(
 		)
 	}
 
-	paymentURL := "http://payment-service:8083/payments"
+	paymentBaseURL := os.Getenv("PAYMENT_SERVICE_URL")
 
+	if paymentBaseURL == "" {
+		paymentBaseURL = "http://payment-service:8083"
+	}
+
+	paymentURL := strings.TrimRight(paymentBaseURL, "/") + "/payments"
 	body, err := json.Marshal(paymentRequest)
 
 	if err != nil {
@@ -731,8 +737,11 @@ func createOrderHandler(
 
 func connectDatabase() {
 
-	dsn := "host=postgres port=5432 user=admin password=password dbname=selfhealing sslmode=disable"
+	dsn := os.Getenv("DATABASE_URL")
 
+	if dsn == "" {
+		dsn = "host=postgres port=5432 user=admin password=password dbname=selfhealing sslmode=disable"
+	}
 	var err error
 
 	db, err = sql.Open(

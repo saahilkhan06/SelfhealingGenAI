@@ -67,21 +67,13 @@ function App() {
 
   const systemHealth = Math.round((healthyServices / 3) * 100);
 
-  const activeIncidents = incidents.filter(
-    (incident) =>
-      incident.status === "detected" ||
-      incident.status === "diagnosing" ||
-      incident.status === "healing" ||
-      incident.status === "verifying",
-  ).length;
+  
 
   const escalatedIncidents = incidents.filter(
     (incident) => incident.status === "escalated",
   ).length;
 
-  const verifiedRecoveries = healingActions.filter(
-    (action) => action.approved && action.verification_status === "verified",
-  ).length;
+  
 
   const latestFailure =
     failureHistory.length > 0
